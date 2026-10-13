@@ -57,10 +57,14 @@ TEKITAudioProcessorEditor::TEKITAudioProcessorEditor(TEKITAudioProcessor& proces
     };
 
     const std::pair<const char*, const char*> parameterList[] = {
-        {"wave", "WAVE"}, {"detune", "DETUNE"}, {"unison", "UNISON"}, {"sub", "SUB"},
+        // OSCILLATORS / PITCH
+        {"wave", "WAVE"}, {"detune", "DETUNE"}, {"unison", "UNISON"},
+        {"sub", "SUB"}, {"pitch", "PITCH"}, {"fine", "FINE"}, {"glide", "GLIDE"},
+        // FILTER / ENVELOPE
         {"cutoff", "CUTOFF"}, {"res", "RESONANCE"}, {"drive", "DRIVE"},
         {"attack", "ATTACK"}, {"decay", "DECAY"}, {"sustain", "SUSTAIN"},
-        {"release", "RELEASE"}, {"pitch", "PITCH"}, {"fine", "FINE"},
+        {"release", "RELEASE"},
+        // EQ / EFFECTS / OUTPUT
         {"eqLow", "EQ LOW"}, {"eqMid", "EQ MID"}, {"eqHigh", "EQ HIGH"},
         {"reverb", "REVERB"}, {"delay", "DELAY"}, {"delayTime", "DELAY TIME"},
         {"width", "WIDTH"}, {"volume", "MASTER"}
@@ -76,16 +80,51 @@ TEKITAudioProcessorEditor::TEKITAudioProcessorEditor(TEKITAudioProcessor& proces
 
 void TEKITAudioProcessorEditor::paint(juce::Graphics& graphics)
 {
-    graphics.fillAll(juce::Colour(0xff030817));
+    graphics.fillAll(juce::Colour(0xff05091a));
+
+    // Subtle midnight-blue gradient and restrained neon frame.
+    graphics.setGradientFill(juce::ColourGradient(
+        juce::Colour(0xff0b1a3a), 0.0f, 0.0f,
+        juce::Colour(0xff10091f), (float)getWidth(), (float)getHeight(), false));
+    graphics.fillRect(getLocalBounds());
+
+    // Panel layout mirrors a hardware synth rather than a generic knob grid.
+    const juce::Colour panel(0xff0a1228);
+    const juce::Colour panelEdge(0xff174b91);
+    const juce::Colour violet(0xffa83cff);
+    auto drawPanel = [&graphics, &panel, &panelEdge, &violet](juce::Rectangle<float> r,
+                                                               const juce::String& caption)
+    {
+        graphics.setColour(panel);
+        graphics.fillRoundedRectangle(r, 8.0f);
+        graphics.setColour(panelEdge);
+        graphics.drawRoundedRectangle(r, 8.0f, 1.0f);
+        graphics.setColour(violet);
+        graphics.fillRect(r.getX() + 12.0f, r.getY() + 30.0f, r.getWidth() - 24.0f, 1.0f);
+        graphics.setColour(juce::Colour(0xff8edfff));
+        graphics.setFont(juce::Font(juce::FontOptions(12.0f, juce::Font::bold)));
+        graphics.drawText(caption, r.withHeight(26.0f).toNearestInt(),
+                          juce::Justification::centredLeft, false);
+    };
+
     graphics.setColour(juce::Colour(0xff087dff));
-    graphics.drawRoundedRectangle(
-        juce::Rectangle<float>(8.0f, 8.0f,
-                              static_cast<float>(getWidth() - 16),
-                              static_cast<float>(getHeight() - 16)),
-        10.0f, 1.5f);
+    graphics.drawRoundedRectangle(8.0f, 8.0f, (float)getWidth() - 16.0f,
+                                  (float)getHeight() - 16.0f, 10.0f, 1.5f);
     graphics.setColour(juce::Colour(0xffc13dff));
-    graphics.drawLine(20.0f, 76.0f, static_cast<float>(getWidth() - 20),
-                      76.0f, 1.0f);
+    graphics.drawLine(20.0f, 76.0f, (float)getWidth() - 20.0f, 76.0f, 1.2f);
+
+    const float panelY = 88.0f;
+    const float panelH = (float)getHeight() - panelY - 18.0f;
+    const float gap = 10.0f;
+    const float panelW = ((float)getWidth() - 44.0f - 2.0f * gap) / 3.0f;
+    drawPanel({ 16.0f, panelY, panelW, panelH }, "01  OSCILLATORS");
+    drawPanel({ 16.0f + panelW + gap, panelY, panelW, panelH }, "02  FILTER / ENVELOPE");
+    drawPanel({ 16.0f + 2.0f * (panelW + gap), panelY, panelW, panelH }, "03  FX / MASTER");
+
+    graphics.setColour(juce::Colour(0xff9c4dff));
+    graphics.setFont(juce::Font(juce::FontOptions(9.0f)));
+    graphics.drawText("TEK IT  •  METALLIC LEAD SYNTH", 22, getHeight() - 17,
+                      getWidth() - 44, 12, juce::Justification::centredRight, false);
 }
 
 void TEKITAudioProcessorEditor::resized()
@@ -94,20 +133,27 @@ void TEKITAudioProcessorEditor::resized()
     subtitle.setBounds(285, 25, 480, 25);
     presetBox.setBounds(780, 24, 230, 30);
 
-    const int left = 22;
-    const int top = 95;
-    const int gap = 10;
-    const int knobWidth = 90;
-    const int knobHeight = 110;
-    const int columns = 10;
+    // Three intentional groups: oscillator, tone/envelope, and effects/master.
+    const int top = 132;
+    const int knobWidth = 86;
+    const int knobHeight = 112;
+    const int x0 = 26;
+    const int x1 = 359;
+    const int x2 = 692;
+    const int columnGap = 96;
+    const int rowGap = 124;
 
     for (int index = 0; index < static_cast<int>(knobs.size()); ++index)
     {
-        const int row = index / columns;
-        const int column = index % columns;
+        int group = 0;
+        int withinGroup = index;
+        if (index >= 7 && index < 14) { group = 1; withinGroup = index - 7; }
+        else if (index >= 14) { group = 2; withinGroup = index - 14; }
+
+        const int row = withinGroup / 3;
+        const int column = withinGroup % 3;
+        const int groupX = group == 0 ? x0 : (group == 1 ? x1 : x2);
         knobs[static_cast<size_t>(index)]->setBounds(
-            left + column * (knobWidth + gap),
-            top + row * (knobHeight + 12),
-            knobWidth, knobHeight);
+            groupX + column * columnGap, top + row * rowGap, knobWidth, knobHeight);
     }
 }
