@@ -137,8 +137,8 @@ void TEKITAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
     }
     const float volume=getP(parameters,"volume");
     const float rv=getP(parameters,"reverb"), dl=getP(parameters,"delay");
-    juce::dsp::Reverb::Parameters rp; rp.roomSize=0.72f; rp.damping=0.35f; rp.wetLevel=rv*0.7f; rp.dryLevel=1.0f-rv*0.35f; rp.width=getP(parameters,"width");
-    juce::dsp::Reverb reverb; reverb.setParameters(rp);
+    juce::Reverb::Parameters rp; rp.roomSize=0.72f; rp.damping=0.35f; rp.wetLevel=rv*0.7f; rp.dryLevel=1.0f-rv*0.35f; rp.width=getP(parameters,"width");
+    juce::Reverb reverb; reverb.setParameters(rp);
     for(int i=0;i<buffer.getNumSamples();++i)
     {
         float sample=0;
