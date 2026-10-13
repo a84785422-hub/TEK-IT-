@@ -32,3 +32,10 @@ servir à affiner les presets à l'étape suivante.
 ## Si le build échoue
 Ouvre l'exécution GitHub Actions, copie le premier message d'erreur rouge complet et envoie-le.
 Évite de modifier plusieurs fichiers au hasard : on corrigera à partir de la première vraie erreur.
+
+
+## Révision interface / son (FIX 11)
+- Interface répartie en panneaux OSCILLATORS, FILTER/ENVELOPE et EQ/EFFECTS/OUTPUT.
+- Les réglages Pitch, Fine, Glide, EQ, Delay Time, Width et Master sont visibles.
+- La largeur stéréo agit sur le signal latéral après le délai ; le centre mono reste stable.
+- Cette révision reste à compiler sur GitHub et à écouter dans FL Studio : elle n'est pas présentée comme testée.
