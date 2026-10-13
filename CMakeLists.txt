@@ -29,6 +29,8 @@ juce_add_plugin(TEK_IT
     COPY_PLUGIN_AFTER_BUILD FALSE
 )
 
+juce_generate_juce_header(TEK_IT)
+
 target_sources(TEK_IT PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginProcessor.h
