@@ -1,41 +1,12 @@
-# TEK IT — Projet VST3 Windows
+# TEK IT — projet VST3 (Windows)
 
-Projet source C++ / JUCE / CMake pour un synthétiseur VST3 destiné à FL Studio.
-Identité visuelle : bleu nuit, bleu électrique et violet fluorescent.
+Synthétiseur JUCE orienté tekstyle / jumpstyle / hard dance.
 
-## Ce qui est inclus
-- Projet CMake avec JUCE 8.0.6 récupéré automatiquement au build.
-- Workflow GitHub Actions Windows x64 qui compile le VST3 et publie un artefact.
-- 30 programmes : 10 Metallic Leads, 10 SuperSaw Leads, 10 Hybrid Synths.
-- Paramètres exposés à l'hôte : Wave, Detune, Unison, Sub, Cutoff, Resonance, Drive,
-  ADSR, Pitch, Fine, EQ Low/Mid/High, Reverb, Delay, Delay Time, Width et Master.
-- Génération sonore par oscillateurs, filtre, enveloppe, saturation et réverbération.
+## Version de travail
+Cette archive est une refonte de travail basée sur FIX9. Elle améliore le traitement de la voix, le moteur de délai stéréo, le maintien de l'état de la réverbération et la disposition de l'interface en trois sections.
 
-## Important — première version de travail
-Ce ZIP est une base de développement compilable à valider, pas un binaire déjà testé dans FL Studio.
-La compilation GitHub nécessite un accès réseau pour télécharger JUCE. Après le build, il faudra
-tester l'artefact dans FL Studio. Les valeurs EQ et Delay sont exposées pour l'automation mais
-leur traitement audio complet reste à finaliser. Les 30 programmes sont des variations synthétiques
-initiales ; les trois morceaux WAV de référence ne sont pas incorporés dans le ZIP et doivent
-servir à affiner les presets à l'étape suivante.
+## Construction
+Le workflow GitHub Actions Windows configure le projet avec CMake et JUCE 8.0.6 puis compile la cible `TEK_IT_VST3`.
 
-## Compilation via GitHub
-1. Crée un nouveau dépôt GitHub nommé `TEK-IT`.
-2. Décompresse le ZIP puis envoie **le contenu** du dossier dans le dépôt (CMakeLists.txt doit être à la racine).
-3. Ouvre l'onglet **Actions**, active les workflows si GitHub le demande.
-4. Lance **Build TEK IT VST3 (Windows x64)** avec **Run workflow**.
-5. Quand le workflow termine, ouvre son exécution et télécharge l'artefact `TEK-IT-VST3-Windows-x64`.
-6. Décompresse l'artefact. Copie `TEK IT.vst3` dans un dossier VST3 scanné par FL Studio, par exemple
-   `C:\\Program Files\\Common Files\\VST3\\`.
-7. Dans FL Studio, lance un rescan des plugins et charge TEK IT.
-
-## Si le build échoue
-Ouvre l'exécution GitHub Actions, copie le premier message d'erreur rouge complet et envoie-le.
-Évite de modifier plusieurs fichiers au hasard : on corrigera à partir de la première vraie erreur.
-
-
-## Révision interface / son (FIX 11)
-- Interface répartie en panneaux OSCILLATORS, FILTER/ENVELOPE et EQ/EFFECTS/OUTPUT.
-- Les réglages Pitch, Fine, Glide, EQ, Delay Time, Width et Master sont visibles.
-- La largeur stéréo agit sur le signal latéral après le délai ; le centre mono reste stable.
-- Cette révision reste à compiler sur GitHub et à écouter dans FL Studio : elle n'est pas présentée comme testée.
+## Important
+Cette archive n'a pas été compilée sous Windows dans cet environnement et n'a pas été écoutée dans FL Studio. La compilation et les essais audio restent nécessaires avant de remplacer un VST3 fonctionnel.

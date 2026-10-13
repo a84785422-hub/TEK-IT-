@@ -1,7 +1,5 @@
 #pragma once
 #include <JuceHeader.h>
-#include <array>
-#include <vector>
 
 class TEKITAudioProcessor final : public juce::AudioProcessor
 {
@@ -56,14 +54,12 @@ private:
     std::array<Voice, voiceCount> voices;
     double currentSampleRate = 44100.0;
     int currentProgram = 0;
-
-    // Persistent master effects: preserve delay/reverb tails between audio blocks.
     juce::Reverb masterReverb;
-    std::vector<float> delayBufferL, delayBufferR;
-    size_t delayWritePosition = 0;
+    std::vector<float> delayLeft, delayRight;
+    size_t delayWrite = 0;
     float eqLowStateL = 0.0f, eqLowStateR = 0.0f;
     float eqMidStateL = 0.0f, eqMidStateR = 0.0f;
-    float eqHighStateL = 0.0f, eqHighStateR = 0.0f;
+    float widthState = 0.0f;
     juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TEKITAudioProcessor)
 };
