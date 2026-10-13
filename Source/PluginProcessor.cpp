@@ -242,10 +242,11 @@ void TEKITAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
         const float delayedR = shaped * (1.0f - delayMix) + echoR * delayMix;
 
         // Width is applied to the stereo side signal, keeping the mono centre stable.
-        const float mid = 0.5f * (delayedL + delayedR);
+        const float stereoMid = 0.5f * (delayedL + delayedR);
         const float side = 0.5f * (delayedL - delayedR) * (width * 2.0f);
-        const float outputL = mid + side;
-        const float outputR = mid - side;
+        const float outputL = stereoMid + side;
+        const float outputR = stereoMid - side;
+        
 
         if (buffer.getNumChannels() >= 2)
         {
@@ -254,7 +255,7 @@ void TEKITAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
         }
         else if (buffer.getNumChannels() == 1)
         {
-            buffer.setSample(0, sampleIndex, mid);
+            buffer.setSample(0, sampleIndex, stereoMid);
         }
     }
 
