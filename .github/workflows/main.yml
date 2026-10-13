@@ -1,0 +1,29 @@
+
+name: Build TEK IT VST3
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Recuperer le projet
+        uses: actions/checkout@v4
+
+      - name: Configurer CMake
+        run: cmake -S . -B build -A x64
+
+      - name: Compiler TEK IT
+        run: cmake --build build --config Release --target TEK_IT_VST3
+
+      - name: Publier le VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: TEK-IT-VST3-Windows-x64
+          path: build/TEK_IT_artefacts/Release/VST3/TEK IT.vst3
+          if-no-files-found: error
