@@ -46,10 +46,14 @@ void TEKITAudioProcessorEditor::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(0xff030817));
     g.setColour(juce::Colour(0xff087dff));
-    g.drawRoundedRectangle(8.0f, 8.0f, (float) getWidth() - 16.0f,
-                           (float) getHeight() - 16.0f, 10.0f, 1.5f);
+    g.drawRoundedRectangle(8.0f, 8.0f,
+                           static_cast<float>(getWidth() - 16),
+                           static_cast<float>(getHeight() - 16),
+                           10.0f, 1.5f);
     g.setColour(juce::Colour(0xffc13dff));
-    g.drawLine(20.0f, 76.0f, (float) getWidth() - 20.0f, 76.0f, 1.0f);
+    g.drawLine(20.0f, 76.0f,
+               static_cast<float>(getWidth() - 20),
+               76.0f, 1.0f);
 }
 
 void TEKITAudioProcessorEditor::resized()
