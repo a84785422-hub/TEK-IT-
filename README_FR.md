@@ -1,41 +1,16 @@
-# TEK IT — Projet VST3 Windows
+# TEK IT — version de travail REWORK V3
 
-Projet source C++ / JUCE / CMake pour un synthétiseur VST3 destiné à FL Studio.
-Identité visuelle : bleu nuit, bleu électrique et violet fluorescent.
+Synthétiseur VST3 JUCE pour FL Studio, ciblant les leads tekstyle, jumpstyle et hard dance.
 
-## Ce qui est inclus
-- Projet CMake avec JUCE 8.0.6 récupéré automatiquement au build.
-- Workflow GitHub Actions Windows x64 qui compile le VST3 et publie un artefact.
-- 30 programmes : 10 Metallic Leads, 10 SuperSaw Leads, 10 Hybrid Synths.
-- Paramètres exposés à l'hôte : Wave, Detune, Unison, Sub, Cutoff, Resonance, Drive,
-  ADSR, Pitch, Fine, EQ Low/Mid/High, Reverb, Delay, Delay Time, Width et Master.
-- Génération sonore par oscillateurs, filtre, enveloppe, saturation et réverbération.
+## Modifications de cette version
+- Interface redimensionnable avec trois sections et commandes rotary explicitement visibles, noms et valeurs.
+- 26 paramètres exposés dans l'interface via APVTS/SliderAttachment pour l'automation hôte.
+- Ajout d'un second oscillateur avec mix, octave, FM et composante bruit.
+- Les 30 presets chargent maintenant avec **reverb et delay à zéro et FX désactivés**. Le son doit rester sec à l'ouverture; les effets peuvent ensuite être activés avec `FX ENABLED` et réglés séparément.
+- Les trois familles utilisent des réglages de base différents; les paramètres Osc B/FM/noise ajoutent une variation de source, pas seulement de l'espace.
 
-## Important — première version de travail
-Ce ZIP est une base de développement compilable à valider, pas un binaire déjà testé dans FL Studio.
-La compilation GitHub nécessite un accès réseau pour télécharger JUCE. Après le build, il faudra
-tester l'artefact dans FL Studio. Les valeurs EQ et Delay sont exposées pour l'automation mais
-leur traitement audio complet reste à finaliser. Les 30 programmes sont des variations synthétiques
-initiales ; les trois morceaux WAV de référence ne sont pas incorporés dans le ZIP et doivent
-servir à affiner les presets à l'étape suivante.
+## Limites et validation
+Cette archive est une version source candidate. Elle n'a pas été compilée sous Windows dans cet environnement et n'a pas été écoutée dans FL Studio. Le moteur reste un synthé maison à oscillateurs, pas un moteur wavetable/FM commercial complet. Vérifier d'abord la compilation, puis les commandes et les presets dans FL Studio avant de remplacer un plugin déjà installé.
 
-## Compilation via GitHub
-1. Crée un nouveau dépôt GitHub nommé `TEK-IT`.
-2. Décompresse le ZIP puis envoie **le contenu** du dossier dans le dépôt (CMakeLists.txt doit être à la racine).
-3. Ouvre l'onglet **Actions**, active les workflows si GitHub le demande.
-4. Lance **Build TEK IT VST3 (Windows x64)** avec **Run workflow**.
-5. Quand le workflow termine, ouvre son exécution et télécharge l'artefact `TEK-IT-VST3-Windows-x64`.
-6. Décompresse l'artefact. Copie `TEK IT.vst3` dans un dossier VST3 scanné par FL Studio, par exemple
-   `C:\\Program Files\\Common Files\\VST3\\`.
-7. Dans FL Studio, lance un rescan des plugins et charge TEK IT.
-
-## Si le build échoue
-Ouvre l'exécution GitHub Actions, copie le premier message d'erreur rouge complet et envoie-le.
-Évite de modifier plusieurs fichiers au hasard : on corrigera à partir de la première vraie erreur.
-
-
-## Révision interface / son (FIX 11)
-- Interface répartie en panneaux OSCILLATORS, FILTER/ENVELOPE et EQ/EFFECTS/OUTPUT.
-- Les réglages Pitch, Fine, Glide, EQ, Delay Time, Width et Master sont visibles.
-- La largeur stéréo agit sur le signal latéral après le délai ; le centre mono reste stable.
-- Cette révision reste à compiler sur GitHub et à écouter dans FL Studio : elle n'est pas présentée comme testée.
+## Compilation
+Utiliser le workflow Windows existant du dépôt, en conservant la branche de test et le workflow déjà connu comme fonctionnel.

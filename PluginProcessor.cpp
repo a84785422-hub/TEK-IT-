@@ -34,10 +34,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout TEKITAudioProcessor::createP
         l.add(std::make_unique<APF>(juce::ParameterID{id, 1}, name,
             juce::NormalisableRange<float>(lo, hi, 0.001f, skew), def));
     };
-    add("wave", "Wave", 0, 3, 1);
+    l.add(std::make_unique<APF>(juce::ParameterID{"wave", 1}, "Wave", juce::NormalisableRange<float>(0.0f, 3.0f, 1.0f), 1.0f));
     add("detune", "Detune", 0, 1, 0.35f);
-    add("unison", "Unison", 1, 7, 5);
+    l.add(std::make_unique<APF>(juce::ParameterID{"unison", 1}, "Unison", juce::NormalisableRange<float>(1.0f, 7.0f, 1.0f), 5.0f));
     add("sub", "Sub Level", 0, 1, 0.15f);
+    add("osc2mix", "Osc B Mix", 0, 1, 0.32f);
+    add("octave2", "Osc B Octave", -2, 2, 0);
+    add("fm", "FM Amount", 0, 1, 0);
+    add("noise", "Noise Level", 0, 0.35f, 0);
     add("cutoff", "Cutoff", 80, 18000, 12000, 0.35f);
     add("res", "Resonance", 0.1f, 1.2f, 0.25f);
     add("drive", "Drive", 0, 1, 0.18f);
@@ -77,7 +81,9 @@ void TEKITAudioProcessor::Voice::prepare(double sr, int block, int channels)
 }
 void TEKITAudioProcessor::Voice::start(int n, float vel, const juce::AudioProcessorValueTreeState& p)
 {
-    note=n; velocity=vel; active=true; releasing=false; age=0; phase=0.0f;
+    const bool legatoReuse = active && getP(p, "glide") > 0.001f;
+    if (!legatoReuse) midiPitch = (float)n;
+    note=n; velocity=vel; active=true; releasing=false; age=0; phase=0.0f; phase2=0.137f; phaseSub=0.0f;
     envParams.attack=getP(p,"attack"); envParams.decay=getP(p,"decay");
     envParams.sustain=getP(p,"sustain"); envParams.release=getP(p,"release");
     ampEnv.setParameters(envParams); ampEnv.noteOn();
@@ -87,7 +93,11 @@ float TEKITAudioProcessor::Voice::render(const juce::AudioProcessorValueTreeStat
 {
     if (!active || sr <= 0.0) return 0.0f;
 
-    const float base = (float)juce::MidiMessage::getMidiNoteInHertz(note + (int)getP(p, "pitch"));
+    const float glideSeconds = getP(p, "glide");
+    if (glideSeconds > 0.001f)
+        midiPitch += ((float)note - midiPitch) * (1.0f - std::exp(-1.0f / (float)(glideSeconds * sr)));
+    else midiPitch = (float)note;
+    const float base = (float)juce::MidiMessage::getMidiNoteInHertz((int)std::round(midiPitch + getP(p, "pitch")));
     const float fine = std::pow(2.0f, getP(p, "fine") / 1200.0f);
     const float detune = getP(p, "detune");
     const int unisonCount = juce::jlimit(1, 7, (int)std::round(getP(p, "unison")));
@@ -98,24 +108,35 @@ float TEKITAudioProcessor::Voice::render(const juce::AudioProcessorValueTreeStat
         const float x = cycles - std::floor(cycles);
         const float sine = std::sin(juce::MathConstants<float>::twoPi * x);
         if (wave == 0) return sine;
-        if (wave == 1) return 0.72f * sine + 0.28f * std::sin(juce::MathConstants<float>::twoPi * x * 2.0f);
-        if (wave == 2) return 2.0f * std::abs(2.0f * x - 1.0f) - 1.0f;
-        return std::tanh(2.5f * sine);
+        if (wave == 1) return 2.0f * x - 1.0f; // saw
+        if (wave == 2) return 1.0f - 4.0f * std::abs(x - 0.5f); // triangle
+        return std::tanh(3.5f * sine); // bright clipped pulse-like tone
     };
 
-    float v = 0.0f;
+    // Oscillator A: unison stack. The stack is intentionally dry; space effects
+    // are user-controlled sends and default to zero in every factory patch.
+    float stack = 0.0f;
+    const float fmAmount = getP(p, "fm");
+    const float oscBHz = base * fine * std::pow(2.0f, getP(p, "octave2"));
+    const float oscB = shape(phase2 + fmAmount * std::sin(juce::MathConstants<float>::twoPi * phaseNow) * 0.12f);
     for (int u = 0; u < unisonCount; ++u)
     {
         const float position = unisonCount == 1 ? 0.0f : (2.0f * (float)u / (float)(unisonCount - 1) - 1.0f);
         const float ratio = 1.0f + position * detune * 0.018f;
-        v += shape(phaseNow * ratio);
+        stack += shape(phaseNow * ratio);
     }
-    v /= std::sqrt((float)unisonCount);
-    v += shape(phaseNow * 0.5f) * getP(p, "sub") * 0.65f;
+    stack /= std::sqrt((float)unisonCount);
+    float v = stack * (1.0f - getP(p, "osc2mix")) + oscB * getP(p, "osc2mix");
+    v += shape(phaseSub) * getP(p, "sub") * 0.65f;
+    // Deterministic noise component, with inharmonic motion so metallic patches
+    // can be fundamentally different without relying on reverb or delay.
+    const float noisePhase = phase * 173.31f + phase2 * 71.7f;
+    v += std::sin(noisePhase * 6.2831853f) * getP(p, "noise");
 
-    // Keep phase bounded to avoid long-session precision loss.
     phase += (float)(base * fine / sr);
-    phase -= std::floor(phase);
+    phase2 += (float)(oscBHz / sr);
+    phaseSub += (float)(base * fine * 0.5 / sr);
+    phase -= std::floor(phase); phase2 -= std::floor(phase2); phaseSub -= std::floor(phaseSub);
 
     filter.setCutoffFrequency(getP(p, "cutoff"));
     filter.setResonance(getP(p, "res"));
@@ -164,8 +185,9 @@ void TEKITAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
     }
 
     const float volume = getP(parameters, "volume");
-    const float rv = getP(parameters, "reverb");
-    const float dl = getP(parameters, "delay");
+    const bool fxEnabled = parameters.getRawParameterValue("fxOn")->load() > 0.5f;
+    const float rv = fxEnabled ? getP(parameters, "reverb") : 0.0f;
+    const float dl = fxEnabled ? getP(parameters, "delay") : 0.0f;
     const float delaySeconds = getP(parameters, "delayTime");
     const float width = getP(parameters, "width");
     const float lowGain = juce::Decibels::decibelsToGain(getP(parameters, "eqLow"));
@@ -284,13 +306,22 @@ void TEKITAudioProcessor::loadPreset(int i)
     set("attack", c.attack); set("decay", c.decay); set("sustain", c.sustain); set("release", c.release);
     set("pitch", c.pitch); set("fine", c.fine);
     // Tone and space are finishing touches; identity comes primarily from the core patch above.
-    set("eqLow", family == 1 ? 1.0f + (slot % 3) * 0.7f : family == 0 ? -2.0f + (slot % 4) : -1.0f + (slot % 3));
-    set("eqMid", family == 0 ? 1.0f + (slot % 4) * 0.8f : family == 1 ? -1.0f + (slot % 3) : -2.0f + (slot % 5));
-    set("eqHigh", family == 0 ? 2.0f + (slot % 4) * 1.2f : family == 1 ? 0.5f + (slot % 4) : 1.0f + (slot % 5) * 0.7f);
-    set("reverb", family == 1 ? 0.06f + (slot % 4) * 0.025f : family == 0 ? 0.025f + (slot % 3) * 0.025f : 0.08f + (slot % 4) * 0.045f);
-    set("delay", family == 0 ? 0.02f + (slot % 3) * 0.02f : family == 1 ? 0.025f + (slot % 3) * 0.025f : 0.04f + (slot % 4) * 0.035f);
+    // Keep tone controls neutral too: all presets are dry, un-EQ'd starting sounds.
+    set("eqLow", 0.0f); set("eqMid", 0.0f); set("eqHigh", 0.0f);
+    // Factory patches are completely dry: effects are opt-in after loading.
+    set("reverb", 0.0f);
+    set("delay", 0.0f);
     set("delayTime", 0.09f + (slot % 6) * 0.13f);
     set("width", family == 1 ? 0.72f + (slot % 3) * 0.08f : family == 0 ? 0.42f + (slot % 4) * 0.12f : 0.55f + (slot % 4) * 0.10f);
+    set("fxOn", 0.0f);
+    // Dedicated oscillator architecture varies by family and by patch. These
+    // parameters shape the raw tone before any optional effects are applied.
+    static constexpr float oscBMix[30] = { .18f,.08f,.34f,.25f,.06f,.38f,.12f,.22f,.04f,.31f, .30f,.24f,.16f,.28f,.12f,.34f,.20f,.18f,.32f,.26f, .72f,.62f,.55f,.78f,.46f,.66f,.52f,.74f,.58f,.80f };
+    static constexpr float octaveB[30] = { 0,0,1,0,1,-1,1,0,2,0, 0,0,0,0,0,0,0,0,0,0, 1,0,1,-1,2,1,-1,0,2,1 };
+    static constexpr float fmAmt[30] = { .12f,.04f,.22f,.08f,.30f,.18f,.05f,.24f,.34f,.10f, .02f,.03f,.01f,.02f,.01f,.04f,.02f,.01f,.03f,.02f, .82f,.68f,.28f,.74f,.55f,.90f,.38f,.76f,.44f,.88f };
+    static constexpr float noiseAmt[30] = { .02f,.04f,.01f,.05f,.03f,.02f,.01f,.04f,.06f,.02f, .00f,.00f,.00f,.00f,.00f,.00f,.00f,.00f,.00f,.00f, .04f,.08f,.02f,.06f,.01f,.10f,.03f,.07f,.02f,.05f };
+    set("osc2mix", oscBMix[currentProgram]); set("octave2", octaveB[currentProgram]);
+    set("fm", fmAmt[currentProgram]); set("noise", noiseAmt[currentProgram]);
     set("volume", 0.72f);
 }
 void TEKITAudioProcessor::getStateInformation(juce::MemoryBlock& dest)

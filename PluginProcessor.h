@@ -43,7 +43,7 @@ private:
         juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> delay { 192000 };
         juce::dsp::ProcessSpec spec {};
         int note = -1;
-        float velocity = 0.0f, phase = 0.0f, age = 0.0f;
+        float velocity = 0.0f, phase = 0.0f, phase2 = 0.0f, phaseSub = 0.0f, age = 0.0f, midiPitch = 60.0f;
         bool active = false, releasing = false;
         void prepare(double sr, int block, int channels);
         void start(int midiNote, float vel, const juce::AudioProcessorValueTreeState& p);
